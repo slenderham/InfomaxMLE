@@ -14,21 +14,21 @@ class RNN:
     def __init__(self, inputDim, recDim, outDim):
         
         p = 1; # sparsity param
-        g = 20; # variance of reservoir weight
+        g = 10; # variance of reservoir weight
         
         self.recDim = recDim
         self.inputDim = inputDim;
         
         # learning rate
-        self.rIH = 5e-4
-        self.rHH = 5e-4
-        self.rHO = 5e-4
+        self.rIH = 2e-4
+        self.rHH = 2e-4
+        self.rHO = 2e-4
         
         # inverse of time constant for membrane voltage
         self.tau_v = 0.1;
         
         # inverse temperature for the sigmoid
-        self.beta = 10;
+        self.beta = 15;
         
         # refractory variable (necessary?)
         self.gamma = 0;
@@ -41,7 +41,7 @@ class RNN:
         self.o = np.zeros((outDim, 1));
         
         # readout intgration constant
-        self.kappa = 0.2;
+        self.kappa = 1;
         
         # membrane voltage
         self.v = np.random.randn(recDim, 1)-10;
@@ -65,7 +65,7 @@ class RNN:
     def trainStep(self, instr, target):
         
         # integrate input
-        instr_aug = np.concatenate((np.ones((1, 1)), instr), axis=0);
+        instr_aug = np.concatenate((np.ones((instr.shape[0], 1)), instr), axis=0);
         dv = np.matmul(self.IH, instr_aug) + np.matmul(self.HH, self.h);
         
         self.v = (1-self.tau_v)*self.v + self.tau_v*dv;
@@ -128,5 +128,5 @@ class RNN:
         
         self.h = new_states;
         
-        return o.squeeze(), self.h.squeeze();
+        return o.squeeze(), self.v.squeeze();
         
