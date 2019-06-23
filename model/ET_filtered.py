@@ -44,7 +44,7 @@ class RNN:
         self.kappa = 1;
         
         # membrane voltage
-        self.v = np.random.randn(recDim, 1)-10;
+        self.v = np.random.randn(recDim, 1);
 #        self.v = np.zeros((recDim, 1));
         
         # initialize weights

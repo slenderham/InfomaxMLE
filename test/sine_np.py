@@ -15,7 +15,7 @@ class PatternGen:
     def __init__(self, nsecs):
         dt = 0.1;
         simtime = np.arange(0, nsecs-dt, dt);
-        simtime2 = np.arange(1*nsecs, np.floor(1.05*nsecs-dt), dt);
+        simtime2 = np.arange(1*nsecs, np.floor(1.25*nsecs-dt), dt);
         
         
         amp = 20;
@@ -38,7 +38,7 @@ class PatternGen:
 #             (amp/2.0)*np.sin(2.0*math.pi*freq*simtime2);
         self.ft2 = ft2/1.5;
         
-        self.net = RNN(1, 128, 1);
+        self.net = RNN(1, 512, 1);
         
     def run(self):
         
@@ -48,12 +48,13 @@ class PatternGen:
         for i in range(0, list(self.ft.shape)[0]-1):
             trainOut[i], trainRecording[:, i], dW = self.net.trainStep(np.array([[self.clock[i+1]]]), self.ft[i+1]);
            
-            if i%1000==0 and i!=0:
-                self.net.rHH -= 3e-7;
-                self.net.rIH -= 3e-7;
-                self.net.rHO -= 3e-7;
+            if i%2000==0 and i!=0:
+                self.net.rHH -= 5e-7;
+                self.net.rIH -= 5e-7;
+                self.net.rHO -= 5e-7;
                 
-                self.net.beta *= 1.01;
+#                if self.net.beta<20:
+#                    self.net.beta *= 1.005;
                 
                 print(i, trainOut[i]-self.ft[i+1], dW);
         
@@ -82,5 +83,5 @@ class PatternGen:
 #        eigPost = np.linalg.eigvals(np.array(self.net.J_G+np.outer(self.net.wf.squeeze(), self.net.wo.squeeze())));
 #        ax2.scatter(eigPost.real, eigPost.imag, s=20);
 if __name__=="__main__":
-    test = PatternGen(30000);
+    test = PatternGen(6000);
     test.run();
