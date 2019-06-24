@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jun  3 13:17:15 2019
-
-@author: wangchong
-"""
+#-*- coding: utf-8 -*-
 
 import numpy as np
 from scipy.special import expit
@@ -25,7 +20,10 @@ class RNN:
         self.rHO = 2e-4
         
         # inverse of time constant for membrane voltage
-        self.tau_v = 0.05;
+        self.tau_v = 0.1;
+        
+        # inverse time constant for calculating average reward
+        self.tau_o = 0.;
         
         # inverse temperature for the sigmoid
         self.beta = 15;
@@ -40,12 +38,8 @@ class RNN:
         self.h = np.zeros((recDim, 1));
         self.o = np.zeros((outDim, 1));
         
-        # readout intgration constant
-        self.kappa = 1;
-        
         # membrane voltage
         self.v = np.random.randn(recDim, 1);
-#        self.v = np.zeros((recDim, 1));
         
         # initialize weights
         self.IH = (2*np.random.rand(recDim, inputDim+1)-1)/np.sqrt(inputDim);
@@ -58,7 +52,7 @@ class RNN:
         self.HH -= self.HH*np.eye(recDim) + self.gamma*recDim*np.eye(recDim);
         
         # eligibility trace
-        self.eHH = np.zeros((1, recDim));
+        self.eBar = np.zeros((1, outDim));
         self.eIH = np.zeros((1, inputDim+1));
         self.eHO = np.zeros((1, recDim));
         

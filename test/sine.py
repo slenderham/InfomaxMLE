@@ -38,7 +38,7 @@ class PatternGen:
 #             (amp/2.0)*np.sin(2.0*math.pi*freq*simtime2);
         self.ft2 = ft2/1.5;
         
-        self.net = RNN(1, 512, 1);
+        self.net = RNN(1, 128, 1);
         
     def run(self):
         
@@ -83,5 +83,5 @@ class PatternGen:
 #        eigPost = np.linalg.eigvals(np.array(self.net.J_G+np.outer(self.net.wf.squeeze(), self.net.wo.squeeze())));
 #        ax2.scatter(eigPost.real, eigPost.imag, s=20);
 if __name__=="__main__":
-    test = PatternGen(6000);
+    test = PatternGen(12000);
     test.run();
