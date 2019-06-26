@@ -147,5 +147,5 @@ class RNN:
         out = np.zeros(self.outDim);
         out[np.argmax(self.o)] = 1;
         
-        return out, self.v.squeeze();
+        return out, self.h.squeeze();
         

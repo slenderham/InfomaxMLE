@@ -68,4 +68,4 @@ class Tetanic():
         
 if __name__== "__main__":
     test = Tetanic(20, 20, 512);
-    test.stimulate(50000, 400);    
+    test.stimulate(55000, 400);
