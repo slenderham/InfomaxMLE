@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jun 24 15:14:33 2019
+
+@author: wangchong
+"""
 
 import numpy as np
 from scipy.special import expit
-from scipy.special import softmax
 
 class RNN:
     def __init__(self, inputDim, recDim, outDim):
@@ -20,10 +24,7 @@ class RNN:
         self.rHO = 2e-4
         
         # inverse of time constant for membrane voltage
-        self.tau_v = 0.1;
-        
-        # inverse time constant for calculating average reward
-        self.tau_o = 0.;
+        self.tau_v = 0.05;
         
         # inverse temperature for the sigmoid
         self.beta = 15;
@@ -38,8 +39,12 @@ class RNN:
         self.h = np.zeros((recDim, 1));
         self.o = np.zeros((outDim, 1));
         
+        # readout intgration constant
+        self.kappa = 1;
+        
         # membrane voltage
         self.v = np.random.randn(recDim, 1);
+#        self.v = np.zeros((recDim, 1));
         
         # initialize weights
         self.IH = (2*np.random.rand(recDim, inputDim+1)-1)/np.sqrt(inputDim);
@@ -52,17 +57,20 @@ class RNN:
         self.HH -= self.HH*np.eye(recDim) + self.gamma*recDim*np.eye(recDim);
         
         # eligibility trace
-        self.eBar = np.zeros((1, outDim));
-        self.eIH = np.zeros((1, inputDim+1));
+        self.eHH = np.zeros((recDim, recDim));
+        self.eIH = np.zeros((recDim, inputDim+1));
         self.eHO = np.zeros((1, recDim));
+        
+        # storing previous derivative
+        self.sigma_prime = np.zeros((recDim, 1));
         
     def trainStep(self, instr, target):
         
         # integrate input
         instr_aug = np.concatenate((np.ones((instr.shape[0], 1)), instr), axis=0);
-        dv = np.matmul(self.IH, instr_aug) + np.matmul(self.HH, self.h);
+        dvt = np.matmul(self.IH, instr_aug) + np.matmul(self.HH, self.h);
         
-        self.v = (1-self.tau_v)*self.v + self.tau_v*dv;
+        self.v = (1-self.tau_v)*self.v + self.tau_v*dvt;
         
         # sample with logistic distribution = diff of gumbel RV
         noise = np.random.logistic(0, 1, size=self.h.shape);
@@ -88,7 +96,9 @@ class RNN:
         dv = dh*(prob)*(1-prob);
         
         # calculate jacobian and update eligibility trace
-        self.eHH = self.tau_v*self.h.T + (1-self.tau_v)*self.eHH
+        self.eHH = self.tau_v*self.h.T \
+                    + (1-self.tau_v)*self.eHH\
+                    + self.tau_v*np.matmul(self.HH, np.matmul(np.diag(self.sigma_prime), self.eHH))
         self.eIH = self.tau_v*instr_aug.T + (1-self.tau_v)*self.eIH
         
         dHH = np.outer(dv, self.eHH);
@@ -100,7 +110,11 @@ class RNN:
         # set diagonal elem of HH to 0
         self.HH -= self.HH*np.eye(self.recDim) + self.gamma*np.eye(self.recDim);
         
+        # save spike for next step
         self.h = new_states;
+        
+        # save derivative of activation for next step
+        self.sigma_prime = prob*(1-prob);
         
         return self.o.squeeze(), self.v.squeeze(), np.linalg.norm(dHH);
     

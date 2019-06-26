@@ -49,7 +49,6 @@ class InfoMax:
         new_state = np.random.binomial(1, prob);
         
         
-        
         self.w += self.gamma*(hebbian - anti_hebbian);
         self.x = new_state;
         
