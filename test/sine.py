@@ -9,16 +9,16 @@ exit"""
 import math
 import numpy as np
 from matplotlib import pyplot as plt
-#from model.ET_filtered import RNN
-from model.threeFactor_linear import RNN
+from model.ET_filtered import RNN
+from util.draw import draw_fig
 
 class PatternGen:
     def __init__(self, nsecs):
         dt = 0.1;
         simtime = np.arange(0, nsecs, dt);
-        simtime2 = np.arange(1*nsecs, 2*nsecs, dt);
+        simtime2 = np.arange(1*nsecs, 1.25*nsecs, dt);
         
-        amp = 5;
+        amp = 1;
         freq = 1.0/60;
         ft = (amp/1.0)*np.sin(1.0*math.pi*freq*simtime) + \
              (amp/2.0)*np.sin(2.0*math.pi*freq*simtime) + \
@@ -38,7 +38,7 @@ class PatternGen:
 #             (amp/2.0)*np.sin(2.0*math.pi*freq*simtime2);
         self.ft2 = ft2/1.5;
         
-        self.net = RNN(1, 1024, 1);
+        self.net = RNN(1, 128, 1);
         
         # prob to sample from ground truth input
         self.epsilon = 0.999;
@@ -46,12 +46,17 @@ class PatternGen:
         # number of steps to condition the RNN during test
         self.condition = 120;
         
+        self.n_plot = 24000;
+        
     def run(self):
         
-        global trainOut, trainRecording, testOut, testRecording
+        global trainOut, trainRecording, testOut, testRecording, dw
         
         trainOut = np.zeros(self.ft.shape);
         trainRecording = np.zeros((self.net.recDim, self.ft.shape[0]));
+        
+        dw = np.zeros(self.ft.shape)
+        
         
         for i in range(0, list(self.ft.shape)[0]-1):
 #            useInput = np.random.binomial(1, self.epsilon);
@@ -60,19 +65,20 @@ class PatternGen:
 #            else:
 #                trainOut[i], trainRecording[:, i], dW = self.net.trainStep(np.array([[trainOut[i-1]]]), self.ft[i+1]);
                 
-            trainOut[i], trainRecording[:, i], dW = self.net.trainStep(np.array([[self.clock[i]]]), self.ft[i]);
-            if i%2000==0 and i!=0:
+            trainOut[i], trainRecording[:, i], dw[i] = self.net.trainStep(np.array([[self.clock[i]]]), self.ft[i]);
+            if i%7200==0 and i!=0:
+                print(i);
                 self.net.rHH *= 0.999;
                 self.net.rIH *= 0.999;
                 self.net.rHO *= 0.999;
                 
-#                self.epsilon *= 0.95
-#                print(self.epsilon);
-                
 #                if self.net.beta<20:
 #                    self.net.beta *= 1.005;
                 
-                print(i, trainOut[i]-self.ft[i+1], dW);
+            
+#            if i%self.n_plot==0 and i!=0:
+#                global ax1, ax2, ax3;
+#                draw_fig(ax1, ax2, ax3, i-self.n_plot, i, self.ft, trainOut, trainRecording, dw);
         
         testOut = np.zeros(self.ft2.shape);
         testRecording = np.zeros((self.net.recDim, self.ft2.shape[0]));
@@ -88,7 +94,7 @@ class PatternGen:
 # =============================================================================
             
         # reset output unit to get rid of existing activities
-        self.net.o = 0;
+#        self.net.o = 0;
         for i in range(0, list(self.ft2.shape)[0]):
              testOut[i], testRecording[:, i] = self.net.testStep(np.array([[self.clock[i]]]));
              if i%500==0:
@@ -108,5 +114,6 @@ class PatternGen:
         
 
 if __name__=="__main__":
-    test = PatternGen(4200);
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1);
+    test = PatternGen(24000);
     test.run();

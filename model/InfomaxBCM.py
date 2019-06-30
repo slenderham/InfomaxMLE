@@ -38,6 +38,8 @@ class InfoMax:
         # noise parameter
         self.sigma = SIGMA;
         
+        # 
+        
     def trainStep(self, ext_in):
         
         # integrate membrane voltage

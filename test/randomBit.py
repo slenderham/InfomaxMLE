@@ -7,7 +7,8 @@ Created on Sun Jun 23 20:48:41 2019
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from model.threeFactor_categorical import RNN
+from model.ET_categorical import RNN
+from util.draw import draw_fig
 
 
 class Tetanic():
@@ -33,30 +34,39 @@ class Tetanic():
         
     def stimulate(self, trainTrials, testTrials):        
         global trainOut, testOut, trainRecording, testRecording;
-        trainOut = np.zeros((self.io_size, trainTrials))
-        testOut = np.zeros((self.io_size, testTrials))
-        trainRecording = np.zeros((self.network_size, trainTrials));
-        testRecording = np.zeros((self.network_size, testTrials));
+        trainOut = np.zeros((self.io_size, trainTrials*self.io_dur))
+        testOut = np.zeros((self.io_size, testTrials*self.io_dur))
+        trainRecording = np.zeros((self.network_size, trainTrials*self.io_dur));
+        testRecording = np.zeros((self.network_size, testTrials*self.io_dur));
         
-        for i in range(trainTrials):
+        sumEr = 0;
+        
+        for i in range(trainTrials*self.io_dur):
             
             trainOut[:, i], trainRecording[:, i], dW \
-            = self.net.trainStep(40*self.stimuli[:, i%self.io_dur].reshape(-1, 1)-20, \
+            = self.net.trainStep(10*self.stimuli[:, i%self.io_dur].reshape(-1, 1)-5, \
                                  self.stimuli[:, (i+1)%self.io_dur].reshape(-1, 1));
             
+            sumEr += np.sum(self.net.o*self.stimuli[:, (i+1)%self.io_dur].reshape(-1, 1));
+                                 
             if (i%2000==0 and i!=0):
-                print (i, self.net.rBar, dW);
-                self.net.rHH *= 0.995;
-                self.net.rIH *= 0.995;
-                self.net.rHO *= 0.995;
-
+                
+                self.net.rHH *= 0.999;
+                self.net.rIH *= 0.999;
+                self.net.rHO *= 0.999;
+                
+                print(i, sumEr/2000);
+                
+                sumEr = 0;
+                
         fig, (ax1, ax2, ax3) = plt.subplots(3);
         ax1.imshow(self.stimuli);
         testOut[:, 0] = self.stimuli[:, 0];
-        for i in range(testTrials):
+        
+        for i in range(1, testTrials*self.io_dur):
             print (i);
             testOut[:, i], testRecording[:, i] \
-            = self.net.testStep(40*testOut[:,(i-1)%self.io_dur].reshape(-1, 1)-20);
+            = self.net.testStep(10*testOut[:,(i-1)].reshape(-1, 1)-5);
 
         ax2.imshow(testOut);
         ax2.set_aspect('auto');
@@ -64,8 +74,8 @@ class Tetanic():
         ax3.imshow(testRecording);
         ax3.set_aspect('auto');
 
-#        plt.hist(self.net.w.flatten(),bins=2000);
+        return self.net.HH;
         
 if __name__== "__main__":
-    test = Tetanic(20, 20, 512);
-    test.stimulate(55000, 400);
+    test = Tetanic(25, 25, 256);
+    w = test.stimulate(2000, 30);

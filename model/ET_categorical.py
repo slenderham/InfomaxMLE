@@ -13,19 +13,20 @@ from scipy.special import softmax
 class RNN:
     def __init__(self, inputDim, recDim, outDim):
         
-        p = 0.1; # sparsity param
+        p = 1; # sparsity param
         g = 1.5; # variance of reservoir weight
         
         self.recDim = recDim
         self.inputDim = inputDim;
+        self.outDim = outDim;
         
         # learning rate
-        self.rIH = 1e-4
-        self.rHH = 1e-4
-        self.rHO = 1e-4
+        self.rIH = 3e-4
+        self.rHH = 3e-4
+        self.rHO = 3e-4
         
         # inverse of time constant for membrane voltage
-        self.tau_v = 0.1;
+        self.tau_v = 0.3;
         
         # inverse temperature for the sigmoid
         self.beta = 1;
@@ -41,7 +42,7 @@ class RNN:
         self.o = np.zeros((outDim, 1));
         
         # readout intgration constant
-        self.kappa = 0.05;
+        self.kappa = 1;
         
         # membrane voltage
         self.v = np.random.randn(recDim, 1);
@@ -81,9 +82,8 @@ class RNN:
         new_states = np.round(prob);
         
         # output and error
-        self.o = (1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states);
+        self.o = softmax((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
         er = self.o-target;
-        
         
         # filter the input to readout based on kappa
         self.eHO = (1-self.kappa)*self.eHO + self.kappa*new_states.T;
@@ -116,7 +116,11 @@ class RNN:
         
         self.h = new_states;
         
-        return self.o.squeeze(), self.v.squeeze(), np.linalg.norm(dHH);
+        # get output onehot
+        out = np.zeros(self.outDim);
+        out[np.argmax(self.o)] = 1;
+        
+        return out, self.v.squeeze(), np.linalg.norm(dHH);
     
     def testStep(self, instr):
         # integrate input
@@ -132,9 +136,13 @@ class RNN:
         new_states = np.round(prob);
         
         # output and error
-        self.o = (1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states);
+        self.o = softmax((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
         
         self.h = new_states;
         
-        return self.o.squeeze(), self.v.squeeze();
+        # get output onehot
+        out = np.zeros(self.outDim);
+        out[np.argmax(self.o)] = 1;
+        
+        return out, self.v.squeeze();
         

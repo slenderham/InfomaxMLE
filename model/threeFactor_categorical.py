@@ -9,16 +9,16 @@ class RNN:
     def __init__(self, inputDim, recDim, outDim):
         
         p = 0.1; # sparsity param
-        g = 1; # variance of reservoir weight
+        g = 1.5; # variance of reservoir weight
         
         self.recDim = recDim;
         self.inputDim = inputDim;
         self.outDim = outDim;
         
         # learning rate
-        self.rIH = 1e-4
-        self.rHH = 1e-4
-        self.rHO = 1e-4
+        self.rIH = 3e-4
+        self.rHH = 3e-4
+        self.rHO = 3e-4
         
         # inverse of time constant for membrane voltage
 #        self.tau_v = np.clip(0.1+np.random.randn(self.recDim,1)*0.01, 0.05, 0.15);
@@ -31,7 +31,7 @@ class RNN:
         self.kappa = 1;
         
         # inverse temperature for the sigmoid
-        self.beta = 15;
+        self.beta = 17;
         
         # refractory variable (necessary?)
         self.gamma = 0;
@@ -134,8 +134,9 @@ class RNN:
         
 #        # sample with logistic distribution = diff of gumbel RV
 #        noise = np.random.logistic(0, 1, size=self.h.shape);
+        noise = 0;
         # spike or not
-        prob = expit(self.beta*(self.v));
+        prob = expit(self.beta*(self.v+noise));
         new_states = np.round(prob);
         
         # output and error
