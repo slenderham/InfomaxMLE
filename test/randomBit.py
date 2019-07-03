@@ -7,20 +7,14 @@ Created on Sun Jun 23 20:48:41 2019
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from model.ET_categorical import RNN
+#from model.ET_categorical import RNN
+from model.ET_MI import RNN
 from util.draw import draw_fig
 
 
-class Tetanic():
+class RandomBit():
     def __init__(self, io_size, io_dur, network_size):
         self.network_size = network_size
-#        self.net = InfoMax(dim = network_size, 
-#                           GAMMA = 1e-4, 
-#                           BETA = network_size, 
-#                           SIGMA = 2,
-#                           G = 2,
-#                           bias = 1, 
-#                           sparsity = 0.1);
         
         self.net = RNN(io_size, network_size, io_size);
         self.io_size = io_size;
@@ -55,7 +49,7 @@ class Tetanic():
                 self.net.rIH *= 0.999;
                 self.net.rHO *= 0.999;
                 
-                print(i, sumEr/2000);
+                print("\r", i, sumEr/2000);
                 
                 sumEr = 0;
                 
@@ -64,11 +58,10 @@ class Tetanic():
         testOut[:, 0] = self.stimuli[:, 0];
         
         for i in range(1, testTrials*self.io_dur):
-            print (i);
             testOut[:, i], testRecording[:, i] \
             = self.net.testStep(10*testOut[:,(i-1)].reshape(-1, 1)-5);
 
-        ax2.imshow(testOut);
+        ax2.imshow(testOut, cmap="hot");
         ax2.set_aspect('auto');
         
         ax3.imshow(testRecording);
@@ -77,5 +70,5 @@ class Tetanic():
         return self.net.HH;
         
 if __name__== "__main__":
-    test = Tetanic(25, 25, 256);
-    w = test.stimulate(2000, 30);
+    test = RandomBit(32, 32, 128);
+    w = test.stimulate(1000, 30);

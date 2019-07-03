@@ -6,6 +6,10 @@ Created on Sat Jun 22 22:56:19 2019
 @author: wangchong
 """
 
+# =============================================================================
+# This one is not finished
+# =============================================================================
+
 import numpy as np;
 from scipy.special import expit;
 from matplotlib import pyplot as plt;

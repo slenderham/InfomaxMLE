@@ -26,7 +26,7 @@ class RNN:
         self.rHO = 3e-4
         
         # inverse of time constant for membrane voltage
-        self.tau_v = 0.3;
+        self.tau_v = 1;
         
         # inverse temperature for the sigmoid
         self.beta = 1;
@@ -120,7 +120,7 @@ class RNN:
         out = np.zeros(self.outDim);
         out[np.argmax(self.o)] = 1;
         
-        return out, self.v.squeeze(), np.linalg.norm(dHH);
+        return out, self.h.squeeze(), np.linalg.norm(dHH);
     
     def testStep(self, instr):
         # integrate input
@@ -144,5 +144,5 @@ class RNN:
         out = np.zeros(self.outDim);
         out[np.argmax(self.o)] = 1;
         
-        return out, self.v.squeeze();
+        return out, self.h.squeeze();
         
