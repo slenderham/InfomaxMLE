@@ -5,6 +5,9 @@ import pandas as pd;
 from matplotlib import pyplot as plt;
 from model.ET_categorical import RNN;
 
+# =============================================================================
+# This test hasn't been run.
+# =============================================================================
 
 class NameGen():
     def __init__(self, res_size):

@@ -45,7 +45,7 @@ class RNN:
         self.kappa = 1;
         
         # regularization parameter for MI
-        self.mi = 0;
+        self.mi = 1;
         
         # membrane voltage
         self.v = np.random.randn(recDim, 1);
@@ -94,7 +94,7 @@ class RNN:
         new_states = np.round(soft_step);
         
         # output and error
-        self.o = softmax((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
+        self.o = expit((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
         er = self.o-target;
         
         # filter the input to readout based on kappa
@@ -144,8 +144,7 @@ class RNN:
         self.h = new_states;
         
         # get output onehot
-        out = np.zeros(self.outDim);
-        out[np.argmax(self.o)] = 1;
+        out = np.round(self.o).squeeze();
         
         return out, self.h.squeeze(), np.linalg.norm(dHH);
     
@@ -163,13 +162,12 @@ class RNN:
         new_states = np.round(prob);
         
         # output and error
-        self.o = softmax((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
+        self.o = expit((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
         
         self.h = new_states;
         
         # get output onehot
-        out = np.zeros(self.outDim);
-        out[np.argmax(self.o)] = 1;
+        out = np.round(self.o).squeeze();
         
         return out, self.v.squeeze();
         

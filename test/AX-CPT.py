@@ -9,7 +9,7 @@ Created on Sat Jun 29 17:41:29 2019
 import numpy as np
 from smooth import smooth
 from matplotlib import pyplot as plt
-from model.ET_filtered import RNN
+from model.ET_MI_binary_choice import RNN
 from util.draw import draw_fig
 
 class AXCPT:
@@ -21,8 +21,8 @@ class AXCPT:
         recDim = 128;
         width = 10;
         self.dur = width*2+1;
-#        self.net = RNN(inputDim, 1);
-        self.net = RNN(5, 1);
+        
+        self.net = RNN(inputDim, recDim, 1);
         
         global trainTime;
         global testTime;

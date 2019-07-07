@@ -67,8 +67,10 @@ class InfoMax:
         self.meanFR = (1-self.tau_r)*self.meanFR + self.tau_r*prob_of_spike;
         
         # calculate voltage dependent term
-        voltage_threshold = np.log((self.meanFR+1e-4) / (1-self.meanFR+1e-4));
-        localVDep = np.outer(soft_step*(1-soft_step)*(self.v - voltage_threshold), self.eSpike)
+# =============================================================================
+#         voltage_threshold = np.log((self.meanFR+1e-4) / (1-self.meanFR+1e-4));
+#         localVDep = np.outer(soft_step*(1-soft_step)*(self.v - voltage_threshold), self.eSpike)
+# =============================================================================
         
         # calculate hebbian term at current time step
         localHebb = np.outer(prob_of_spike*(1-prob_of_spike), self.eSpike);
@@ -83,7 +85,7 @@ class InfoMax:
         self.w += self.gamma*(dw);
         self.h = new_state;
         
-        return self.v.squeeze(), np.linalg.norm(dw);
+        return self.h.squeeze(), np.linalg.norm(dw);
         
     
 #    def testStep(self, ext_in):

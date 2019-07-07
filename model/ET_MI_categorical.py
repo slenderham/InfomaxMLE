@@ -21,12 +21,12 @@ class RNN:
         self.outDim = outDim;
         
         # learning rate
-        self.rIH = 3e-4
-        self.rHH = 3e-4
-        self.rHO = 3e-4
+        self.rIH = 5e-4
+        self.rHH = 5e-4
+        self.rHO = 5e-4
         
         # inverse of time constant for membrane voltage
-        self.tau_v = 1;
+        self.tau_v = 0.7;
         
         # inverse temperature for the sigmoid
         self.beta = 1;
@@ -45,7 +45,7 @@ class RNN:
         self.kappa = 1;
         
         # regularization parameter for MI
-        self.mi = 0;
+        self.mi = 0.1;
         
         # membrane voltage
         self.v = np.random.randn(recDim, 1);
@@ -171,5 +171,5 @@ class RNN:
         out = np.zeros(self.outDim);
         out[np.argmax(self.o)] = 1;
         
-        return out, self.v.squeeze();
+        return out, self.h.squeeze();
         
