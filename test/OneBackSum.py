@@ -5,9 +5,6 @@ Created on Thu Jul  4 00:25:52 2019
 
 @author: wangchong
 """
-# =============================================================================
-# This needs more work
-# =============================================================================
 
 import numpy as np
 from matplotlib import pyplot as plt

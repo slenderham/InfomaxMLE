@@ -21,9 +21,9 @@ class RNN:
         self.outDim = outDim;
         
         # learning rate
-        self.rIH = 5e-4
-        self.rHH = 5e-4
-        self.rHO = 5e-4
+        self.rIH = 3e-4
+        self.rHH = 3e-4
+        self.rHO = 3e-4
         
         # inverse of time constant for membrane voltage
         self.tau_v = 0.7;
@@ -45,7 +45,7 @@ class RNN:
         self.kappa = 1;
         
         # regularization parameter for MI
-        self.mi = 0.1;
+        self.mi = 0.05;
         
         # membrane voltage
         self.v = np.random.randn(recDim, 1);
@@ -143,11 +143,7 @@ class RNN:
         
         self.h = new_states;
         
-        # get output onehot
-        out = np.zeros(self.outDim);
-        out[np.argmax(self.o)] = 1;
-        
-        return out, self.h.squeeze(), np.linalg.norm(dHH);
+        return np.argmax(self.o), self.h.squeeze(), np.linalg.norm(dHH);
     
     def testStep(self, instr):
         # integrate input
@@ -167,9 +163,6 @@ class RNN:
         
         self.h = new_states;
         
-        # get output onehot
-        out = np.zeros(self.outDim);
-        out[np.argmax(self.o)] = 1;
         
-        return out, self.h.squeeze();
+        return np.argmax(self.o), self.h.squeeze();
         
