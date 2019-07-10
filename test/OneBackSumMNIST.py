@@ -36,7 +36,7 @@ class NBack():
         
         self.net = RNN(28*28, network_size, 2*io_size-1);
         
-        # use only digits 0 to io_size
+        # use only digits 0 to io_size-1 
         self.io_size = io_size;
         
         # load data, select only certain subsets
@@ -68,7 +68,8 @@ class NBack():
         sumdW = 0;
         
         for j in range(trainTrials):
-            print("Train Epoch ", j);
+            print("Train Epoch ", j+1);
+            
             for idx, (data, target) in enumerate(self.train_loader):
                 
                 trainStimuli[j*trainSetLen + idx] = int(target);
@@ -84,18 +85,19 @@ class NBack():
                 
                 if (idx%1000==0 and idx!=0):
                     
-                    self.net.rHH *= 0.98;
-                    self.net.rIH *= 0.98;
-                    self.net.rHO *= 0.98;
-                    
                     print(idx, sumEr/1000, sumdW/(1000*self.network_size**2));
                     
                     sumEr = 0;
+                    sumdW = 0;
         
+            self.net.rHH *= 0.7;
+            self.net.rIH *= 0.7;
+            self.net.rHO *= 0.7;
+            
         testAcc = 0;
         
         for j in range(testTrials):
-            print("Test Epoch ", j);
+            print("Test Epoch ", j+1);
             for idx, (data, target) in enumerate(self.test_loader):
                 
                 testStimuli[j*testSetLen + idx] = target;
@@ -111,9 +113,9 @@ class NBack():
                 
         print(testAcc/(testTrials*testSetLen));
 
-        fig, (ax1, ax2) = plt.subplots(3);
-        ax1.plot(testTarget, 'b');
-        ax1.plot(testOut, 'm');
+        fig, (ax1, ax2) = plt.subplots(2);
+        ax1.plot(testTarget, 'bo-');
+        ax1.plot(testOut, 'go-');
         
         ax2.imshow(testRecording);
         ax2.set_aspect('auto');
@@ -128,4 +130,4 @@ class NBack():
 if __name__== "__main__":
     test = NBack(io_size = 3, network_size = 128);
 
-    w = test.stimulate(trainTrials = 1, testTrials = 1);
+    w = test.stimulate(trainTrials = 5, testTrials = 1);

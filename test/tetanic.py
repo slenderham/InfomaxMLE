@@ -8,12 +8,12 @@ Created on Mon Jul  1 12:42:45 2019
 
 import numpy as np
 from matplotlib import pyplot as plt
-from model.InfomaxReparam import InfoMax;
+from model.InfomaxExplicit import InfoMax;
 
 class Tetanic:
     def __init__(self, trials, network_size, num_to_stim):
         self.net = InfoMax(dim = network_size,
-                           GAMMA = 8e-3,
+                           GAMMA = 1e-5,
                            BETA = 1,
                            G = 1.5,
                            bias = 0,
@@ -23,6 +23,7 @@ class Tetanic:
         self.trials = trials;
         self.num_to_stim = num_to_stim;
         
+        self.ItoH = np.random.randn(self.network_size, self.num_to_stim);
 #        self.sigma = 5;
 #        self.sign = np.round(np.random.rand(num_to_stim, 1))*2-1;
 #        self.stimuli = np.random.randn(self.num_to_stim, self.trials)*self.sigma + 25*self.sign;
@@ -40,14 +41,16 @@ class Tetanic:
         recording = np.zeros((self.network_size, self.trials));
         
         for i in range(self.trials):
-            total_input = np.concatenate((self.stimuli[:, i%self.num_to_stim], np.zeros((self.network_size-self.num_to_stim)))).reshape(-1, 1);
-            recording[:, i], dw[i] = self.net.trainStep(total_input);
-            
             if (i%200==0):
                 print(i);
+#            if i>=int(self.trials/2):
+#                self.net.gamma = 0;
+#                total_input = 0;
+            total_input = np.matmul(self.ItoH, self.stimuli[:, i%self.num_to_stim].reshape(-1, 1));
             
-            if i==int(self.trials/2):
-                self.net.gamma = 0;
+            recording[:, i], dw[i] = self.net.trainStep(total_input);
+            
+            
 # =============================================================================
 #             if i<self.trials/2:
 #                 total_input = np.concatenate((self.stimuli[:, i%self.num_to_stim], np.zeros((self.network_size-self.num_to_stim)))).reshape(-1, 1);
@@ -65,7 +68,7 @@ class Tetanic:
         
         fig, (ax1, ax2) = plt.subplots(2);
         ax1.plot(dw);
-        ax2.imshow(recording, cmap="hot");
+        ax2.imshow(recording);
         ax2.set_aspect("auto");
         
         fig, (ax3, ax4) = plt.subplots(1, 2);
@@ -76,6 +79,6 @@ class Tetanic:
         
         
 if __name__ == "__main__":
-    test = Tetanic(4000, 64, 16);
+    test = Tetanic(40000, 128, 16);
     w = test.stimulate();
             

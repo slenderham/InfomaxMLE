@@ -21,9 +21,9 @@ class RNN:
         self.outDim = outDim;
         
         # learning rate
-        self.rIH = 3e-4
-        self.rHH = 3e-4
-        self.rHO = 3e-4
+        self.rIH = 5e-4
+        self.rHH = 5e-4
+        self.rHO = 5e-4
         
         # inverse of time constant for membrane voltage
         self.tau_v = 0.7;
@@ -45,7 +45,7 @@ class RNN:
         self.kappa = 1;
         
         # regularization parameter for MI
-        self.mi = 0.05;
+        self.mi = 0.1;
         
         # membrane voltage
         self.v = np.random.randn(recDim, 1);

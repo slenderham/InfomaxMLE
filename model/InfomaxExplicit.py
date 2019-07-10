@@ -22,7 +22,7 @@ class InfoMax:
         self.v = np.random.randn(dim, 1);
         
         # membrane time constant
-        self.tau_v = 0.1;
+        self.tau_v = 0.7;
         
         # weights
         self.w = G*np.random.randn(dim, dim)/np.sqrt(dim*sparsity);
@@ -59,33 +59,31 @@ class InfoMax:
         # noise and spike
         noise = np.random.logistic(0, 1);
         prob_of_spike = expit(self.beta*(self.v - self.b + ext_in));
-        soft_step = expit(self.beta*(self.v - self.b + ext_in + noise));
-        new_state = np.round(soft_step);
+        prob_of_spike = np.clip(prob_of_spike, 0.01, 0.99);
+        new_state = ((self.v - self.b + ext_in + noise)>0)
         
         # update eligibility trace
         self.eSpike = (1-self.tau_v)*self.eSpike + self.tau_v*h_aug.T;
         self.meanFR = (1-self.tau_r)*self.meanFR + self.tau_r*prob_of_spike;
         
-        # calculate voltage dependent term
-# =============================================================================
-#         voltage_threshold = np.log((self.meanFR+1e-4) / (1-self.meanFR+1e-4));
-#         localVDep = np.outer(soft_step*(1-soft_step)*(self.v - voltage_threshold), self.eSpike)
-# =============================================================================
-        
         # calculate hebbian term at current time step
         localHebb = np.outer(prob_of_spike*(1-prob_of_spike), self.eSpike);
+        
+        # calculate voltage dependent term
+        voltage_threshold = np.log((self.meanFR) / (1-self.meanFR));
+        localVDep = localHebb*(self.v - voltage_threshold);
                              
         # update running average
         self.eHebb = (1-self.tau_e)*self.eHebb + self.tau_e*localHebb;
         
         # calculate final gradient
-        dw = np.outer(new_state-prob_of_spike, self.eSpike) \
-            - self.eHebb * (new_state-self.meanFR) / (self.meanFR * (1-self.meanFR) + 1e-3);
+        dw = localVDep \
+            - self.eHebb * (prob_of_spike-self.meanFR) / (self.meanFR * (1-self.meanFR));
         
         self.w += self.gamma*(dw);
         self.h = new_state;
         
-        return self.h.squeeze(), np.linalg.norm(dw)/self.dim**2;
+        return self.v.squeeze(), np.linalg.norm(dw)/self.dim**2;
         
     
 #    def testStep(self, ext_in):
