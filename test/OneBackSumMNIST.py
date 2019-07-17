@@ -8,7 +8,7 @@ Created on Thu Jul  4 00:25:52 2019
 
 import numpy as np
 from matplotlib import pyplot as plt
-from model.ET_MI_categorical_explicit import RNN
+from model.ET_MI_categorical_explicit_vartau import RNN
 from torchvision import datasets, transforms
 import torch
 
@@ -96,9 +96,9 @@ class NBack():
                     sumErSq = 0;
                     sumdWSq = 0;
         
-            self.net.rHH *= 0.5;
-            self.net.rIH *= 0.5;
-            self.net.rHO *= 0.5;
+            self.net.rHH *= 0.7;
+            self.net.rIH *= 0.7;
+            self.net.rHO *= 0.7;
 #            self.net.mi *= 0.9;
             
         testAcc = 0;
@@ -131,10 +131,10 @@ class NBack():
         
     def oneHot(self, target):
         result = np.zeros((self.io_size*2-1, 1));
-        result[int(target),0] = 1;
+        result[int(target), 0] = 1;
         return result;
     
 if __name__== "__main__":
-    test = NBack(io_size = 3, network_size = 64);
+    test = NBack(io_size = 4, network_size = 128);
 
     w = test.stimulate(trainTrials = 5, testTrials = 1);

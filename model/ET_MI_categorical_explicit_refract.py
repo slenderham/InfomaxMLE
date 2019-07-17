@@ -21,12 +21,15 @@ class RNN:
         self.outDim = outDim;
         
         # learning rate
-        self.rIH = 4e-3
-        self.rHH = 4e-3
-        self.rHO = 4e-3
+        self.rIH = 5e-4
+        self.rHH = 5e-4
+        self.rHO = 5e-4
         
         # inverse of time constant for membrane voltage
         self.tau_v = 0.7;
+        
+        # inverse of time constant for threshold adaption
+        self.tau_t = 0.7;
         
         # inverse temperature for the sigmoid
         self.beta = 1;
@@ -40,9 +43,6 @@ class RNN:
         # hidden and readout state initialization
         self.h = np.zeros((recDim, 1));
         self.o = np.zeros((outDim, 1));
-        
-        # readout intgration constant
-        self.kappa = 1;
         
         # regularization parameter for MI
         self.mi = 0.1;
@@ -61,17 +61,15 @@ class RNN:
         self.HH -= self.HH*np.eye(recDim) + self.gamma*recDim*np.eye(recDim);
         
         # eligibility trace
-        self.eHH = np.zeros((1, recDim));
+        self.eHH_volt = np.zeros((1, recDim));
         self.eIH = np.zeros((1, inputDim+1));
-        self.eHO = np.zeros((1, recDim));
-        
-        self.eHHfromOut = np.zeros((recDim, recDim));
-        self.eIHfromOut = np.zeros((recDim, inputDim+1));
         
         self.eGradHH = np.zeros((recDim, recDim));
         self.eGradIH = np.zeros((recDim, inputDim+1));
         
         self.meanFR = np.zeros((recDim, 1));
+        
+        self.thresh = np.zeros((recDim, 1));
         
         # time constant for moving average of hebbian product and mean firing rate
         self.tau_e = 0.005;
@@ -94,22 +92,19 @@ class RNN:
         new_states = np.round(soft_step);
         
         # output and error
-        self.o = softmax((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
+        self.o = softmax(np.matmul(self.HO, new_states));
         er = self.o-target;
         
-        # filter the input to readout based on kappa
-        self.eHO = (1-self.kappa)*self.eHO + self.kappa*new_states.T;
-        
         # update HO
-        dHO = np.outer(er, self.eHO.T);
+        dHO = np.outer(er, new_states);
         self.HO -= self.rHO*dHO + self.lmbda*self.HO;
         
         # calculate backprop gradient
         dh = np.matmul(self.HO.T, er);
         
         # calculate jacobian and update eligibility trace
-        self.eHH = self.tau_v*self.h.T + (1-self.tau_v)*self.eHH
-        self.eIH = self.tau_v*instr_aug.T + (1-self.tau_v)*self.eIH
+        self.eHH_volt = self.tau_v*self.h.T + (1-self.tau_v)*self.eHH_volt
+        self.eIH_volt = self.tau_v*instr_aug.T + (1-self.tau_v)*self.eIH
         
         self.eHHfromOut = (1-self.kappa)*self.eHHfromOut \
                         + self.kappa*(np.outer(soft_step*(1-soft_step), self.eHH));

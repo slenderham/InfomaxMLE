@@ -21,12 +21,12 @@ class RNN:
         self.outDim = outDim;
         
         # learning rate
-        self.rIH = 3e-4
-        self.rHH = 3e-4
-        self.rHO = 3e-4
+        self.rIH = 5e-4
+        self.rHH = 5e-4
+        self.rHO = 5e-4
         
         # inverse of time constant for membrane voltage
-        self.tau_v = 0.7;
+        self.tau_v = np.clip(0.7 + np.random.randn(self.recDim, 1)*0.2, 0.1, 1);
         
         # inverse temperature for the sigmoid
         self.beta = 1;
@@ -61,8 +61,8 @@ class RNN:
         self.HH -= self.HH*np.eye(recDim) + self.gamma*recDim*np.eye(recDim);
         
         # eligibility trace
-        self.eHH = np.zeros((1, recDim));
-        self.eIH = np.zeros((1, inputDim+1));
+        self.eHH = np.zeros((recDim, recDim));
+        self.eIH = np.zeros((recDim, inputDim+1));
         self.eHO = np.zeros((1, recDim));
         
         self.eHHfromOut = np.zeros((recDim, recDim));
@@ -108,19 +108,19 @@ class RNN:
         dh = np.matmul(self.HO.T, er);
         
         # calculate jacobian and update eligibility trace
-        self.eHH = self.tau_v*self.h.T + (1-self.tau_v)*self.eHH
-        self.eIH = self.tau_v*instr_aug.T + (1-self.tau_v)*self.eIH
+        self.eHH = np.outer(self.tau_v, self.h.T) + (1-self.tau_v)*self.eHH
+        self.eIH = np.outer(self.tau_v, instr_aug.T) + (1-self.tau_v)*self.eIH
         
         self.eHHfromOut = (1-self.kappa)*self.eHHfromOut \
-                        + self.kappa*(np.outer(soft_step*(1-soft_step), self.eHH));
+                        + self.kappa*soft_step*(1-soft_step)*self.eHH;
         self.eIHfromOut = (1-self.kappa)*self.eIHfromOut \
-                        + self.kappa*(np.outer(soft_step*(1-soft_step), self.eIH));
+                        + self.kappa*soft_step*(1-soft_step)*self.eIH;
         
         self.meanFR = (1-self.tau_r)*self.meanFR + self.tau_r*prob;
         
         # calculate hebbian term at current time step
-        localGradHH = np.outer(prob*(1-prob), self.eHH);
-        localGradIH = np.outer(prob*(1-prob), self.eIH);
+        localGradHH = prob*(1-prob)*self.eHH;
+        localGradIH = prob*(1-prob)*self.eIH;
         
         # calculate voltage dependent term
         voltage_threshold = self.v - np.log((self.meanFR) / (1-self.meanFR));
