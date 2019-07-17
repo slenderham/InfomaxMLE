@@ -8,6 +8,10 @@ Created on Fri Jun 28 22:51:10 2019
 import numpy as np
 from matplotlib import pyplot as plt
 
+# =============================================================================
+# real time plotting of the training result
+# =============================================================================
+
 def draw_fig(ax1, ax2, ax3, ss, gg, trainTarget, trainOut, trainRecording, w_dot):
     trainTime = np.arange(ss, gg);    
 #    plt.plot(trainTime[ss:gg], u[ss:gg], color=plt.cm.Blues(0.3), linewidth=4, label='$input$')

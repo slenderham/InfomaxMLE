@@ -13,7 +13,7 @@ from model.InfomaxExplicit import InfoMax;
 class Tetanic:
     def __init__(self, trials, network_size, num_to_stim):
         self.net = InfoMax(dim = network_size,
-                           GAMMA = 1e-5,
+                           GAMMA = 1e-3,
                            BETA = 1,
                            G = 1.5,
                            bias = 0,
@@ -24,14 +24,14 @@ class Tetanic:
         self.num_to_stim = num_to_stim;
         
         self.ItoH = np.random.randn(self.network_size, self.num_to_stim);
-#        self.sigma = 5;
-#        self.sign = np.round(np.random.rand(num_to_stim, 1))*2-1;
-#        self.stimuli = np.random.randn(self.num_to_stim, self.trials)*self.sigma + 25*self.sign;
+        self.sigma = 15;
+        self.sign = np.round(np.random.rand(num_to_stim, 1))*2-1;
+        self.stimuli = np.random.randn(self.num_to_stim, self.trials)*self.sigma + 0*self.sign;
         
 #        self.stimuli = np.concatenate((np.eye(network_size//4), np.flip(np.eye(network_size//4), [0])),1)
 #        self.stimuli = np.eye(network_size)[:, 0:network_size/2];
-        self.stimuli = (np.eye(self.num_to_stim) + np.flip(np.eye(self.num_to_stim), [0]))*10-5;
-#        self.stimuli = np.round(np.random.rand(np.round(num_to_stim),np.round(num_to_stim))*0.55)
+#        self.stimuli = (np.eye(self.num_to_stim) + np.flip(np.eye(self.num_to_stim), [0]))*10-5;
+#        self.stimuli = np.round(np.random.rand(np.round(num_to_stim),np.round(num_to_stim))*0.55)*10-5
 #        self.stimuli = 50*np.eye(self.num_to_stim)[np.random.permutation(self.num_to_stim)].T-25;
         
     def stimulate(self):
@@ -73,12 +73,12 @@ class Tetanic:
         
         fig, (ax3, ax4) = plt.subplots(1, 2);
         ax3.imshow(self.net.w, cmap="seismic");
-        ax4.hist(self.net.w.flatten(), bins=int(self.net.dim/2));
+        ax4.hist(self.net.w.flatten(), bins=20);
         
         return self.net.w;
         
         
 if __name__ == "__main__":
-    test = Tetanic(40000, 128, 16);
+    test = Tetanic(10000, 128, 16);
     w = test.stimulate();
             

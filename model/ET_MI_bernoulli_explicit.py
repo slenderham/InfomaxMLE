@@ -74,8 +74,8 @@ class RNN:
         self.meanFR = np.zeros((recDim, 1));
         
         # time constant for moving average of hebbian product and mean firing rate
-        self.tau_e = 0.01;
-        self.tau_r = 0.01;
+        self.tau_e = 0.005;
+        self.tau_r = 0.005;
         
     def trainStep(self, instr, target):
         
@@ -94,7 +94,7 @@ class RNN:
         new_states = np.round(soft_step);
         
         # output and error
-        self.o = softmax((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
+        self.o = expit((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
         er = self.o-target;
         
         # filter the input to readout based on kappa
@@ -121,16 +121,19 @@ class RNN:
         # calculate hebbian term at current time step
         localGradHH = np.outer(prob*(1-prob), self.eHH);
         localGradIH = np.outer(prob*(1-prob), self.eIH);
-                             
+        
+        # calculate voltage dependent term
+        voltage_threshold = self.v - np.log((self.meanFR) / (1-self.meanFR));
+        
         # update running average
         self.eGradHH = (1-self.tau_e)*self.eGradHH + self.tau_e*localGradHH;
         self.eGradIH = (1-self.tau_e)*self.eGradIH + self.tau_e*localGradIH;
         
-        hebbianHH = np.outer(new_states-prob, self.eHH);
-        hebbianIH = np.outer(new_states-prob, self.eIH);
+        hebbianHH = voltage_threshold*localGradHH;
+        hebbianIH = voltage_threshold*localGradIH;
         
-        antiHebbianHH = self.eGradHH * (new_states-prob) / (self.meanFR*(1-self.meanFR));
-        antiHebbianIH = self.eGradIH * (new_states-prob) / (self.meanFR*(1-self.meanFR));
+        antiHebbianHH = self.eGradHH * (prob-self.meanFR) / (self.meanFR*(1-self.meanFR));
+        antiHebbianIH = self.eGradIH * (prob-self.meanFR) / (self.meanFR*(1-self.meanFR));
         
         dHH = dh*self.eHHfromOut - self.mi*(hebbianHH - antiHebbianHH);
         dIH = dh*self.eIHfromOut - self.mi*(hebbianIH - antiHebbianIH);
@@ -143,7 +146,7 @@ class RNN:
         
         self.h = new_states;
         
-        return np.argmax(self.o), self.h.squeeze(), np.linalg.norm(dHH);
+        return self.o, self.h.squeeze(), np.linalg.norm(dHH);
     
     def testStep(self, instr):
         # integrate input
@@ -153,9 +156,9 @@ class RNN:
         self.v = (1-self.tau_v)*self.v + self.tau_v*dvt;
         
 #        # sample with logistic distribution = diff of gumbel RV
-#        noise = np.random.logistic(0, 1, size=self.h.shape);
+        noise = np.random.logistic(0, 1, size=self.h.shape);
         # spike or not
-        prob = expit(self.beta*(self.v));
+        prob = expit(self.beta*(self.v+noise));
         new_states = np.round(prob);
         
         # output and error

@@ -8,7 +8,7 @@ Created on Thu Jul  4 00:25:52 2019
 
 import numpy as np
 from matplotlib import pyplot as plt
-from model.ET_MI_categorical import RNN
+from model.ET_MI_categorical_explicit import RNN
 from torchvision import datasets, transforms
 import torch
 
@@ -66,6 +66,8 @@ class NBack():
         
         sumEr = 0;
         sumdW = 0;
+        sumErSq = 0;
+        sumdWSq = 0;
         
         for j in range(trainTrials):
             print("Train Epoch ", j+1);
@@ -81,18 +83,23 @@ class NBack():
                 = self.net.trainStep(data.numpy().flatten().reshape(-1, 1), oneHotTarget);
                 
                 sumEr += np.dot(np.log(self.net.o).T, oneHotTarget);
-                sumdW += dW;              
+                sumErSq += np.dot(np.log(self.net.o).T, oneHotTarget)**2;
+                sumdW += dW;     
+                sumdWSq += dW**2;
                 
-                if (idx%1000==0 and idx!=0):
+                if (idx%3000==0 and idx!=0):
                     
-                    print(idx, sumEr/1000, sumdW/(1000*self.network_size**2));
+                    print(idx, sumEr/3000, (sumErSq/3000-(sumEr/3000)**2), sumdW/(3000), (sumdWSq/3000-(sumdW/3000)**2));
                     
                     sumEr = 0;
                     sumdW = 0;
+                    sumErSq = 0;
+                    sumdWSq = 0;
         
-            self.net.rHH *= 0.7;
-            self.net.rIH *= 0.7;
-            self.net.rHO *= 0.7;
+            self.net.rHH *= 0.5;
+            self.net.rIH *= 0.5;
+            self.net.rHO *= 0.5;
+#            self.net.mi *= 0.9;
             
         testAcc = 0;
         
@@ -128,6 +135,6 @@ class NBack():
         return result;
     
 if __name__== "__main__":
-    test = NBack(io_size = 3, network_size = 128);
+    test = NBack(io_size = 3, network_size = 64);
 
     w = test.stimulate(trainTrials = 5, testTrials = 1);
