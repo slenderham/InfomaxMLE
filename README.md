@@ -1,1 +1,1 @@
-# InfomaxRL
+# InfomaxMLE
