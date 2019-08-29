@@ -5,6 +5,9 @@ Created on Sat Jun 22 22:56:19 2019
 
 @author: wangchong
 """
+# =============================================================================
+# terrible idea
+# =============================================================================
 
 import numpy as np;
 from scipy.special import expit;
@@ -22,7 +25,7 @@ class InfoMax:
         self.v = np.random.randn(dim, 1);
         
         # membrane time constant
-        self.tau_v = 0.7;
+        self.tau_v = 0.1;
         
         # weights
         self.w = G*np.random.randn(dim, dim)/np.sqrt(dim*sparsity);
@@ -40,21 +43,16 @@ class InfoMax:
         
         # eligibility trace
         self.eSpike = np.zeros((1, dim));
-        self.eHebb = np.zeros((dim, dim));
-        self.meanFR = np.zeros((dim, 1));
-        
-        # time constant for moving average of hebbian product and mean firing rate
-        self.tau_e = 0.005;
-        self.tau_r = 0.25*self.gamma;
-        
+        self.prevFR = np.zeros((dim, 1));
+                
     def trainStep(self, ext_in):
         
         # integrate membrane voltage
 #        h_aug = np.concatenate(([[1]], self.h));
         h_aug = self.h;
         
-        dvt = np.matmul(self.w, h_aug);
-        self.v = (1-self.tau_v)*self.v + self.tau_v*dvt;
+        dvt = -self.tau_v + np.matmul(self.w, h_aug);
+        self.v += self.tau_v*dvt;
         
         # noise and spike
         noise = np.random.logistic(0, 1);
@@ -65,34 +63,16 @@ class InfoMax:
         self.eSpike = (1-self.tau_v)*self.eSpike + self.tau_v*h_aug.T;
         self.meanFR = (1-self.tau_r)*self.meanFR + self.tau_r*prob_of_spike;
                 
-        # calculate hebbian term at current time step
-        localHebb = np.outer(prob_of_spike*(1-prob_of_spike), self.eSpike);
+        hebbian = np.outer(self.tau_v*dvt*prob_of_spike*(1-prob_of_spike), self.eSpike);
+        anti_hebbian = np.outer(prob_of_spike - self.prevFR, prev_eSpike);
         
-        # calculate voltage dependent term
-        voltage_threshold = np.log((self.meanFR+1e-8) / (1-self.meanFR+1e-8));
-        localVDep = localHebb*(self.v - voltage_threshold);
-                             
-        # update running average
-        self.eHebb = (1-self.tau_e)*self.eHebb + self.tau_e*localHebb;
-                
+        self.prevFR = prob_of_spike;
+        
         # calculate final gradient
-        dw = localVDep \
-            - self.eHebb * (prob_of_spike-self.meanFR) / (self.meanFR * (1-self.meanFR) + 1e-8);
+        dw = hebbian - anti_hebbian;
         
         self.w += self.gamma*(dw);
         self.h = new_state;
         
         return self.h.squeeze(), np.linalg.norm(dw)/self.dim**2;
-        
-    
-#    def testStep(self, ext_in):
-#        x_aug = np.concatenate(([[1]], self.x));
-#        vt = np.matmul(self.w, x_aug);
-#        
-#        prob = expit(vt - self.b + self.sigma*np.random.randn(self.dim,1)+ ext_in);
-#        
-#        new_state = np.random.binomial(1, prob);
-#        self.x = new_state;
-#        
-#        return prob.squeeze();
         

@@ -6,10 +6,6 @@ Created on Mon Jun  3 13:17:15 2019
 @author: wangchong
 """
 
-# =============================================================================
-# not quite working, need investigation
-# =============================================================================
-
 import numpy as np
 from scipy.special import expit
 from scipy.special import softmax
@@ -25,21 +21,18 @@ class RNN:
         self.outDim = outDim;
         
         # learning rate
-        self.rIH = 4e-3
-        self.rHH = 4e-3
-        self.rHO = 4e-3
+        self.rIH = 1e-3
+        self.rHH = 1e-3
+        self.rHO = 1e-3
         
         # inverse of time constant for membrane voltage
-        self.tau_v = np.clip(0.7 + np.random.randn(recDim, 1)*0.1, 0.1, 1);
-        
-        # inverse of time constant for threshold adaption
-        self.tau_t = np.clip(0.1 + np.random.randn(recDim, 1)*0.05, 0.1, 1);
+        self.tau_v = np.clip(0.7 + np.random.randn(self.recDim, 1)*0.1, 0.1, 1);
         
         # inverse temperature for the sigmoid
         self.beta = 1;
         
-        # refractory variable 
-        self.gamma = 10;
+        # refractory variable (necessary?)
+        self.gamma = 0;
         
         # weight decay
         self.lmbda = 0;
@@ -48,8 +41,20 @@ class RNN:
         self.h = np.zeros((recDim, 1));
         self.o = np.zeros((outDim, 1));
         
+        # readout intgration constant
+        self.kappa = 1;
+        
         # regularization parameter for MI
-        self.mi = 0.01;
+        self.mi = 0.0;
+        
+        # time constant for moving average of hebbian product and mean firing rate
+        self.tau_e = 0.0005;
+        self.tau_r = 0.0005;
+        
+        # size of buffer
+        self.buffer_size = 20;
+        self.buffer_head = 0;
+        self.buffer_filled = False;
         
         # membrane voltage
         self.v = np.random.randn(recDim, 1);
@@ -62,23 +67,21 @@ class RNN:
         # create sparse HH, have all diag as 0
         mask = np.random.binomial(1, p, size=(recDim, recDim))
         self.HH *= mask;
-        self.HH -= self.HH*np.eye(recDim);
+        self.HH -= self.HH*np.eye(recDim) + self.gamma*recDim*np.eye(recDim);
         
         # eligibility trace
-        self.eHH_volt = np.zeros((recDim, recDim));
-        self.eIH_volt = np.zeros((recDim, inputDim+1));
-        self.eHH_adapt = np.zeros((recDim, recDim));
-        self.eIH_adapt = np.zeros((recDim, inputDim+1));
-
+        self.eHH = np.zeros((recDim, recDim));
+        self.eIH = np.zeros((recDim, inputDim+1));
+        self.eHO = np.zeros((1, recDim));
+        
+        self.eHHfromOut = np.zeros((recDim, recDim));
+        self.eIHfromOut = np.zeros((recDim, inputDim+1));
+        
         self.eGradHH = np.zeros((recDim, recDim));
         self.eGradIH = np.zeros((recDim, inputDim+1));
         
         self.meanFR = np.zeros((recDim, 1));
-        
-        self.thresh = np.zeros((recDim, 1));
-        
-        # time constant for moving average of hebbian product and mean firing rate
-        self.tau_e =  self.tau_r = 0.005;
+        self.buffer = np.zeros((recDim, self.buffer_size));
         
     def trainStep(self, instr, target):
         
@@ -92,34 +95,52 @@ class RNN:
         noise = np.random.logistic(0, 1, size=self.h.shape);
         
         # spike or not
-        soft_step = expit(self.beta*(self.v - self.gamma*self.thresh + noise));
-        prob = expit(self.beta*(self.v - self.gamma*self.thresh));
+        soft_step = expit(self.beta*(self.v+noise));
+        prob = expit(self.beta*(self.v));
         new_states = np.round(soft_step);
-
-        # update threshold
-        self.thresh = (1-self.tau_t)*self.thresh + self.tau_t*new_states;
         
+        """
+            supervised likelihood
+        """
+
         # output and error
-        self.o = softmax(np.matmul(self.HO, new_states));
+        self.o = softmax((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
         er = self.o-target;
         
+        # filter the input to readout based on kappa
+        self.eHO = (1-self.kappa)*self.eHO + self.kappa*new_states.T;
+        
         # update HO
-        dHO = np.outer(er, new_states);
+        dHO = np.outer(er, self.eHO.T);
         self.HO -= self.rHO*dHO + self.lmbda*self.HO;
         
         # calculate backprop gradient
         dh = np.matmul(self.HO.T, er);
+
+
         
-        # update eligibility traces of voltage
-        self.eHH_volt = np.outer(self.tau_v, self.h.T) + (1-self.tau_v)*self.eHH_volt;
-        self.eIH_volt = np.outer(self.tau_v, instr_aug.T) + (1-self.tau_v)*self.eIH_volt;
+        # calculate jacobian and update eligibility trace
+        prev_eHH = self.eHH;
+        prev_eIH = self.eIH;
+
+        self.eHH = np.outer(self.tau_v, self.h.T) + (1-self.tau_v)*self.eHH
+        self.eIH = np.outer(self.tau_v, instr_aug.T) + (1-self.tau_v)*self.eIH
         
-        # update moving average of firing rate
+        self.eHHfromOut = (1-self.kappa)*self.eHHfromOut \
+                        + self.kappa*soft_step*(1-soft_step)*self.eHH;
+        self.eIHfromOut = (1-self.kappa)*self.eIHfromOut \
+                        + self.kappa*soft_step*(1-soft_step)*self.eIH;
+        
+        """
+            conditional entropy, sum of marginal entropy
+        """
+
         self.meanFR = (1-self.tau_r)*self.meanFR + self.tau_r*prob;
         
         # calculate hebbian term at current time step
-        localGradHH = prob * (1-prob) * (self.eHH_volt - self.gamma*self.eHH_adapt);
-        localGradIH = prob * (1-prob) * (self.eIH_volt - self.gamma*self.eIH_adapt);
+        curr_sigma_prime = prob*(1-prob);
+        localGradHH = curr_sigma_prime*self.eHH;
+        localGradIH = curr_sigma_prime*self.eIH;
         
         # calculate voltage dependent term
         voltage_threshold = self.v - np.log((self.meanFR) / (1-self.meanFR));
@@ -133,26 +154,31 @@ class RNN:
         
         antiHebbianHH = self.eGradHH * (prob-self.meanFR) / (self.meanFR*(1-self.meanFR));
         antiHebbianIH = self.eGradIH * (prob-self.meanFR) / (self.meanFR*(1-self.meanFR));
-        
-        soft_step_prime = soft_step*(1-soft_step);
 
-        dHH = dh*soft_step_prime*(self.eHH_volt - self.gamma*self.eHH_adapt) - self.mi*(hebbianHH - antiHebbianHH);
-        dIH = dh*soft_step_prime*(self.eIH_volt - self.gamma*self.eIH_adapt) - self.mi*(hebbianIH - antiHebbianIH);
+        """
+            joint entropy
+        """
+
+        curr_over_prev = np.prod(prob/self.prevFR);
+
+        curr_prob_of_no_spike = prob*(1-spike) + (1-prob)*spike;
+        prev_prob_of_no_spike = self.prevFR*(1-spike) + (1-self.prevFR)*spike;
+
+        
+
+        dHH = dh*self.eHHfromOut - self.mi*(hebbianHH - antiHebbianHH);
+        dIH = dh*self.eIHfromOut - self.mi*(hebbianIH - antiHebbianIH);
         
         self.HH -= self.rHH*dHH + self.lmbda*self.HH;
         self.IH -= self.rIH*dIH + self.lmbda*self.IH;
         
         # set diagonal elem of HH to 0
-        self.HH -= self.HH*np.eye(self.recDim);
+        self.HH -= self.HH*np.eye(self.recDim) + self.gamma*np.eye(self.recDim);
         
         self.h = new_states;
+        self.prevFR = prob;
         
-        # update eligibility traces of threshold
-        pre_factor = self.tau_t*(soft_step)*(1-soft_step);
-        self.eIH_adapt = (1-self.tau_t-self.gamma*pre_factor)*self.eIH_adapt + pre_factor*self.eIH_volt;
-        self.eHH_adapt = (1-self.tau_t-self.gamma*pre_factor)*self.eHH_adapt + pre_factor*self.eHH_volt;
-        
-        return np.argmax(self.o), self.thresh.squeeze();
+        return np.argmax(self.o), self.h.squeeze(), np.linalg.norm(dHH);
     
     def testStep(self, instr):
         # integrate input
@@ -164,14 +190,11 @@ class RNN:
 #        # sample with logistic distribution = diff of gumbel RV
         noise = np.random.logistic(0, 1, size=self.h.shape);
         # spike or not
-        prob = expit(self.beta*(self.v-self.gamma*self.thresh+noise));
+        prob = expit(self.beta*(self.v+noise));
         new_states = np.round(prob);
         
-        # update threshold
-        self.thresh = (1-self.tau_t)*self.thresh + self.tau_t*self.gamma*new_states;
-        
         # output and error
-        self.o = softmax(np.matmul(self.HO, new_states));
+        self.o = softmax((1-self.kappa)*self.o + self.kappa*np.matmul(self.HO, new_states));
         
         self.h = new_states;
         

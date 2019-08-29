@@ -58,12 +58,12 @@ class Tetanic:
 #                 total_input = 0;
 #             recording[:, i], dw[i] = self.net.trainStep(total_input);
 #             
-#             if i==self.trials/4:
-#                 self.net.gamma /= 10;
-#             elif i==self.trials/2:
-#                 self.net.gamma *= 10;
-#             elif i==self.trials*3/4:
-#                 self.net.gamma /= 10;
+            if i==self.trials/4:
+                self.net.gamma /= 10;
+            elif i==self.trials/2:
+                self.net.gamma *= 10;
+            elif i==self.trials*3/4:
+                self.net.gamma /= 10;
 # =============================================================================
         
         fig, (ax1, ax2) = plt.subplots(2);
