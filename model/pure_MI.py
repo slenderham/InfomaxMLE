@@ -31,9 +31,9 @@ class RNN:
         # refractory variable (necessary?)
         self.gamma = 0;
         
-        # desired firing rate
+        # desired firing rate and regularization parameter (don't make it close to or bigger than 1)
         self.sigmaBar = 0.1;
-        self.lmbda = 0.5;
+        self.lmbda = 0.4;
 
         # hidden and readout state initialization
         self.h = np.zeros((recDim, 1));

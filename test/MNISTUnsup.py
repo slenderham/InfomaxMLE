@@ -105,6 +105,14 @@ class NBack():
         ax2.imshow(testRecording);
         ax2.set_aspect('auto');
 
+        fig, ax = plt.subplots(8,8);
+        for i in range(64):
+            ax[i//8, i%8].imshow(self.net.IH[i,1:].reshape(28,28),cmap="seismic");
+            
+        _ = plt.figure();
+        plt.imshow(self.net.HH);
+
+
         return self.net.IH, self.net.HH;
         
     def oneHot(self, target):
