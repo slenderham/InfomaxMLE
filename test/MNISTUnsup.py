@@ -123,4 +123,4 @@ class NBack():
 if __name__== "__main__":
     test = NBack(io_size = 10, network_size = 64);
 
-    w_ih, w_hh = test.stimulate(trainTrials = 1, testTrials = 1);
+    w_ih, w_hh = test.stimulate(trainTrials = 3, testTrials = 1);

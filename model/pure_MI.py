@@ -23,7 +23,7 @@ class RNN:
         self.rHH = 1e-3
         
         # inverse of time constant for membrane voltage
-        self.tau_v = np.clip(0.7 + np.random.randn(self.recDim, 1)*0.05, 0.1, 1);
+        self.tau_v = np.clip(0.5 + np.random.randn(self.recDim, 1)*0.1, 0.1, 1);
         
         # inverse temperature for the sigmoid
         self.beta = 1;
