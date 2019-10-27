@@ -50,9 +50,9 @@ class NBack():
             
             if (i%3000==0 and i!=0):
                 
-                self.net.rHH *= 0.98;
-                self.net.rIH *= 0.98;
-                self.net.rHO *= 0.98;
+                self.net.rHH *= 0.99;
+                self.net.rIH *= 0.99;
+                self.net.rHO *= 0.99;
                 
 #                self.net.tau_e*= 0.9;
 #                self.net.tau_r *= 0.9;
@@ -81,5 +81,5 @@ class NBack():
         return self.net.IH, self.net.HH;
         
 if __name__== "__main__":
-    test = NBack(in_size = 100, num_ints = 10, network_size = 64);
-    w_ih, w_hh = test.stimulate(trainTrials = 80000, testTrials = 400);
+    test = NBack(in_size = 49, num_ints = 10, network_size = 64);
+    w_ih, w_hh = test.stimulate(trainTrials = 90000, testTrials = 400);

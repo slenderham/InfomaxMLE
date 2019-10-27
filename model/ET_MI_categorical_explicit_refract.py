@@ -17,7 +17,7 @@ from scipy.special import softmax
 class RNN:
     def __init__(self, inputDim, recDim, outDim):
         
-        p = 1; # sparsity param
+        p = 0.1; # sparsity param
         g = 1.5; # variance of reservoir weight
         
         self.recDim = recDim
@@ -33,7 +33,7 @@ class RNN:
         self.tau_v = np.clip(0.7 + np.random.randn(recDim, 1)*0.1, 0.1, 1);
         
         # inverse of time constant for threshold adaption
-        self.tau_t = np.clip(0.1 + np.random.randn(recDim, 1)*0.05, 0.1, 1);
+        self.tau_t = np.clip(0.9 + np.random.randn(recDim, 1)*0.05, 0.1, 1);
         
         # inverse temperature for the sigmoid
         self.beta = 1;
@@ -78,11 +78,12 @@ class RNN:
         self.thresh = np.zeros((recDim, 1));
         
         # time constant for moving average of hebbian product and mean firing rate
-        self.tau_e =  self.tau_r = 0.005;
+        self.tau_e =  self.tau_r = 0.001;
         
     def trainStep(self, instr, target):
         
         # integrate input
+        self.v[self.h==1] = 0;
         instr_aug = np.concatenate((np.ones((1, 1)), instr), axis=0);
         dvt = np.matmul(self.IH, instr_aug) + np.matmul(self.HH, self.h);
         
@@ -95,9 +96,6 @@ class RNN:
         soft_step = expit(self.beta*(self.v - self.gamma*self.thresh + noise));
         prob = expit(self.beta*(self.v - self.gamma*self.thresh));
         new_states = np.round(soft_step);
-
-        # update threshold
-        self.thresh = (1-self.tau_t)*self.thresh + self.tau_t*new_states;
         
         # output and error
         self.o = softmax(np.matmul(self.HO, new_states));
@@ -152,10 +150,17 @@ class RNN:
         self.eIH_adapt = (1-self.tau_t-self.gamma*pre_factor)*self.eIH_adapt + pre_factor*self.eIH_volt;
         self.eHH_adapt = (1-self.tau_t-self.gamma*pre_factor)*self.eHH_adapt + pre_factor*self.eHH_volt;
         
-        return np.argmax(self.o), self.thresh.squeeze();
+        # reset
+        self.v -= self.thresh*self.gamma;
+        # update threshold
+        self.thresh = (1-self.tau_t)*self.thresh + self.tau_t*new_states;
+
+        
+        return np.argmax(self.o), self.v.squeeze(), np.linalg.norm(dHH);
     
     def testStep(self, instr):
         # integrate input
+        self.v[self.h==1] = 0;
         instr_aug = np.concatenate((np.ones((1, 1)), instr), axis=0);
         dvt = np.matmul(self.IH, instr_aug) + np.matmul(self.HH, self.h);
         
@@ -168,13 +173,12 @@ class RNN:
         new_states = np.round(prob);
         
         # update threshold
-        self.thresh = (1-self.tau_t)*self.thresh + self.tau_t*self.gamma*new_states;
+        self.thresh = (1-self.tau_t)*self.thresh + self.tau_t*new_states;
         
         # output and error
         self.o = softmax(np.matmul(self.HO, new_states));
         
         self.h = new_states;
-        
         
         return np.argmax(self.o), self.h.squeeze();
         

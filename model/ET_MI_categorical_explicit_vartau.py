@@ -21,12 +21,12 @@ class RNN:
         self.outDim = outDim;
         
         # learning rate
-        self.rIH = 4e-3
-        self.rHH = 4e-3
-        self.rHO = 4e-3
+        self.rIH = 1e-3
+        self.rHH = 1e-3
+        self.rHO = 1e-3
         
         # inverse of time constant for membrane voltage
-        self.tau_v = np.clip(0.7 + np.random.rand(self.recDim, 1)*0.1, 0.1, 1);
+        self.tau_v = np.clip(0.7 + np.random.rand(self.recDim, 1)*0.05, 0.1, 1);
         
         # inverse temperature for the sigmoid
         self.beta = 1;
@@ -74,11 +74,12 @@ class RNN:
         self.meanFR = np.zeros((recDim, 1));
         
         # time constant for moving average of hebbian product and mean firing rate
-        self.tau_e = self.tau_r = 0.001;
+        self.tau_e = self.tau_r = 0.05;
         
     def trainStep(self, instr, target):
         
         # integrate input
+        self.v[self.h==1] = 0;
         instr_aug = np.concatenate((np.ones((1, 1)), instr), axis=0);
         dvt = np.matmul(self.IH, instr_aug) + np.matmul(self.HH, self.h);
         
