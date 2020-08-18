@@ -1,4 +1,4 @@
-# InfomaxMLE
+# Infomax with Spiking RNN
 ![Poster](https://github.com/slenderham/InfomaxMLE/blob/master/URS.jpg)
 
 - todo
