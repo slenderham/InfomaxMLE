@@ -1,4 +1,5 @@
 # InfomaxMLE
+![Poster](https://github.com/slenderham/InfomaxMLE/blob/master/URS.jpg)
 
 - todo
   - Scale up the model
